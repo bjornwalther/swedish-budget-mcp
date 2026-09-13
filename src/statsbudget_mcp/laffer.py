@@ -61,7 +61,7 @@ class LafferPoint:
     tax_quota_pct: float
     gdp_msek: float
     total_tax_msek: float | None
-    real_gdp_growth_pct: float | None
+    nominal_gdp_growth_pct: float | None
     decade: str
     is_reform_year: bool
     reform_label: str | None
@@ -105,7 +105,7 @@ async def build_laffer_curve(
                 tax_quota_pct=tax_pct,
                 gdp_msek=gdp,
                 total_tax_msek=tax,  # preserve None, don't convert to 0
-                real_gdp_growth_pct=nominal_growth,
+                nominal_gdp_growth_pct=nominal_growth,
                 decade=decade,
                 is_reform_year=year in reform_years,
                 reform_label=reform_years.get(year),
@@ -199,7 +199,7 @@ def laffer_timeseries(points: list[LafferPoint]) -> list[dict[str, Any]]:
             "tax_quota_pct": p.tax_quota_pct,
             "gdp_msek": p.gdp_msek,
             "total_tax_msek": p.total_tax_msek,
-            "nominal_gdp_growth_pct": p.real_gdp_growth_pct,
+            "nominal_gdp_growth_pct": p.nominal_gdp_growth_pct,
             "reform": p.reform_label,
         }
         for p in points

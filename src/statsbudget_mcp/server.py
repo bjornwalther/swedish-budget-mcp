@@ -31,6 +31,8 @@ from .laffer import (
 )
 from .scb_client import SCBClient
 from .statskontoret import (
+    BALANCE_MSEK_NOTE,
+    NEXT_UPDATE_NOTE,
     ExpenditureRow,
     IncomeRow,
     StatskontoretClient,
@@ -284,6 +286,12 @@ async def get_budget_overview(
     total income, balance, and all 27 expenditure areas in MSEK.
     Source: Statskontoret arsutfall (official statistics).
 
+    balance_msek is income minus the sum of the 27 expenditure
+    areas' outturn. It is NOT the official central-government
+    budget balance (budgetsaldo), which also includes net lending
+    and a cash adjustment from Riksgalden that this server does
+    not source. See balance_note.
+
     Args:
         year: Budget year (2006-2025 available).
     """
@@ -298,6 +306,7 @@ async def get_budget_overview(
         ),
         "total_income_msek": overview.total_income_msek,
         "balance_msek": overview.balance_msek,
+        "balance_note": BALANCE_MSEK_NOTE,
         "areas": [
             {
                 "area_id": a.area_id,
@@ -398,6 +407,7 @@ async def sync_budget_data(
         "next_expected_update": (
             status.next_expected_update
         ),
+        "next_expected_update_note": NEXT_UPDATE_NOTE,
         "cache_stats": cache.get_stats(),
         "snapshot": result,
         "sources": [
@@ -504,6 +514,7 @@ async def get_sync_status() -> dict[str, Any]:
         "next_expected_update": (
             status.next_expected_update
         ),
+        "next_expected_update_note": NEXT_UPDATE_NOTE,
         "cache": cache.get_stats(),
         "sources": [
             _serialize_source(s)

@@ -74,7 +74,8 @@ def format_budget_bars(
         f"Statsbudgeten {year}",
         f"Utgifter {_fmt_msek(total_exp)}  "
         f"Inkomster {_fmt_msek(total_inc)}  "
-        f"Saldo {'+' if balance >= 0 else ''}{_fmt_msek(balance)}",
+        f"Saldo* {'+' if balance >= 0 else ''}{_fmt_msek(balance)}",
+        "* ej officiellt budgetsaldo, se balance_note",
         "",
     ]
 
@@ -159,7 +160,7 @@ def format_budget_flow(
 
     # Build flow
     balance_sign = "+" if balance >= 0 else ""
-    balance_label = f"Saldo {balance_sign}{_fmt_msek(balance)}"
+    balance_label = f"Saldo* {balance_sign}{_fmt_msek(balance)}"
 
     lines = [
         f"{'INKOMSTER':^30}     {'UTGIFTER':^30}",
@@ -189,6 +190,7 @@ def format_budget_flow(
 
     lines.append("")
     lines.append(f"  {balance_label:^60}")
+    lines.append(f"  {'* ej officiellt budgetsaldo, se balance_note':^60}")
 
     return "\n".join(lines)
 

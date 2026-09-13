@@ -118,6 +118,22 @@ class IncomeRow:
     outcome_msek: float | None
 
 
+# A 2024 comparison found a 12.370 BSEK gap between balance_msek
+# and the official ESV budget balance (ClickUp task 869ey30z3).
+# The gap is net lending + a cash adjustment, both published only in
+# ESV's PDF reports (no structured/API source exists) or behind a
+# scrape-only export on Riksgalden's site — neither is integrated,
+# so we do not expose placeholder fields we cannot fill.
+BALANCE_MSEK_NOTE = (
+    "balance_msek is total income minus the sum of the 27 "
+    "expenditure areas' outturn. It is NOT the official "
+    "central-government budget balance (budgetsaldo), which also "
+    "includes net lending and a cash adjustment from the Swedish "
+    "National Debt Office (Riksgalden). This server does not "
+    "source that data, so no official balance figure is provided."
+)
+
+
 @dataclass
 class BudgetOverview:
     year: int
@@ -199,6 +215,18 @@ def _parse_int_safe(value: str) -> int:
 
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
+
+
+# next_expected_update is a calendar heuristic (typical publication
+# months per PUBLICATION_SCHEDULE), not a date confirmed by
+# Statskontoret. The day-of-month is an arbitrary placeholder.
+NEXT_UPDATE_NOTE = (
+    "next_expected_update is a heuristic estimate based on "
+    "Statskontoret's typical publication cadence (expenditure in "
+    "March, income revisions in March and June). It is not a "
+    "confirmed date from Statskontoret. See get_publication_schedule "
+    "for the underlying cadence assumptions."
+)
 
 
 def _next_expected_update() -> str:
@@ -776,6 +804,7 @@ class StatskontoretClient:
             "next_expected_update": (
                 _next_expected_update()
             ),
+            "next_expected_update_note": NEXT_UPDATE_NOTE,
             "sync_recommendation": (
                 "Sync in March and June each year."
             ),

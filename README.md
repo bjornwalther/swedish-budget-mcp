@@ -11,6 +11,12 @@ Built for Claude Desktop, Glama, and any MCP-compatible client.
 
 Budget tools return **actual outturn** (utfall) from Statskontoret, not the originally proposed budget. This means the numbers show what was actually spent and collected, not what was planned. Every response includes `data_type` and `source` fields so consuming applications can communicate this clearly.
 
+## Budget Balance Semantics
+
+`get_budget_overview` returns `balance_msek`, which is **total income minus the sum of the 27 expenditure areas' outturn**. This is *not* the official central-government budget balance (budgetsaldo) published by ESV/Riksgalden, which also includes net lending and a cash adjustment. A 2024 comparison found a 12.370 BSEK gap between the two (-91.902 BSEK vs. the official -104.272 BSEK).
+
+To avoid silently misleading consumers, the response also includes `balance_note`, which explains the above in-band. No `official_balance_msek` field is exposed: net lending and cash adjustment data exist only in ESV's PDF reports or behind a scrape-only export on Riksgalden's site, not as a structured/API source, so we don't promise a field we have no reliable way to fill.
+
 ## Sync Guarantees
 
 - **Atomic snapshots**: both expenditure and income must parse successfully before any in-memory data or cache is updated. If either dataset fails, the server raises `SyncError` and falls back to the previous valid cache.

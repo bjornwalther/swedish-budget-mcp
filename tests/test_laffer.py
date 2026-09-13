@@ -15,29 +15,29 @@ def _make_points() -> list[LafferPoint]:
     return [
         LafferPoint(
             year=1975, tax_quota_pct=44.2, gdp_msek=250000,
-            total_tax_msek=110500, real_gdp_growth_pct=2.1,
+            total_tax_msek=110500, nominal_gdp_growth_pct=2.1,
             decade="1970s", is_reform_year=False, reform_label=None,
         ),
         LafferPoint(
             year=1976, tax_quota_pct=47.8, gdp_msek=280000,
-            total_tax_msek=None, real_gdp_growth_pct=-1.2,
+            total_tax_msek=None, nominal_gdp_growth_pct=-1.2,
             decade="1970s", is_reform_year=True,
             reform_label="Pomperipossa (102% marginalskatt)",
         ),
         LafferPoint(
             year=1990, tax_quota_pct=52.3, gdp_msek=1450000,
-            total_tax_msek=758350, real_gdp_growth_pct=-1.1,
+            total_tax_msek=758350, nominal_gdp_growth_pct=-1.1,
             decade="1990s", is_reform_year=False, reform_label=None,
         ),
         LafferPoint(
             year=1991, tax_quota_pct=49.1, gdp_msek=1530000,
-            total_tax_msek=751230, real_gdp_growth_pct=-1.0,
+            total_tax_msek=751230, nominal_gdp_growth_pct=-1.0,
             decade="1990s", is_reform_year=True,
             reform_label="\u00c5rhundradets skattereform",
         ),
         LafferPoint(
             year=2024, tax_quota_pct=42.5, gdp_msek=6400000,
-            total_tax_msek=2720000, real_gdp_growth_pct=1.5,
+            total_tax_msek=2720000, nominal_gdp_growth_pct=1.5,
             decade="2020s", is_reform_year=False, reform_label=None,
         ),
     ]
