@@ -97,6 +97,21 @@ _INC_CSV_P2 = (
     "2024;40500,0;38500,0\n"
 )
 
+# Two-year expenditure CSV (for get_budget_overview / get_biggest_changes)
+_EXP_CSV_TWO_YEARS = (
+    "Utgiftsområde;Utgiftsområdesnamn;"
+    "Anslag;Anslagsnamn;"
+    "År;Statens budget;Utfall\n"
+    "01;Rikets styrelse;0101001;Hovet;"
+    "2023;105,0;100,0\n"
+    "01;Rikets styrelse;0101001;Hovet;"
+    "2024;155,0;150,0\n"
+    "06;Försvar;0601001;Förband;"
+    "2023;85500,0;85000,0\n"
+    "06;Försvar;0601001;Förband;"
+    "2024;80500,0;80000,0\n"
+)
+
 # Invalid expenditure CSV: missing Utfall column
 _EXP_CSV_NO_UTFALL = (
     "Utgiftsomr\u00e5de;Utgiftsomr\u00e5desnamn;"
@@ -554,3 +569,188 @@ class TestSyncBudgetDataHandler:
             srv._sk = orig_sk
             srv._cache = orig_cache
             cache.close()
+
+
+# -------------------------------------------------------
+# Test: get_budget_overview handler, full production path
+# -------------------------------------------------------
+
+
+@pytest.mark.asyncio
+class TestMCPHandlerGetBudgetOverview:
+    """get_budget_overview() handler: sync -> client -> response.
+
+    Exercises the real handler function (not just the client's
+    get_budget_overview method), so a regression in as_of, rank,
+    or the note fields is caught by CI, not just a manual check.
+    """
+
+    async def test_response_shape_and_values(
+        self, tmp_path,
+    ):
+        import statsbudget_mcp.server as srv
+
+        client = await _make_client(tmp_path)
+        await client.sync()
+
+        orig_sk = srv._sk
+        srv._sk = client
+
+        try:
+            result = await srv.get_budget_overview(2024)
+
+            assert result["year"] == 2024
+            assert result["data_type"] == "outturn"
+            assert result["source"] == "Statskontoret"
+            assert result["as_of"] is not None
+
+            # Fixture: area 01 outcome 158.244, area 06
+            # outcome 84500.0; income (P2) 50900.0 + 38500.0
+            assert result[
+                "total_expenditure_msek"
+            ] == pytest.approx(158.244 + 84500.0)
+            assert "total_expenditure_note" in result
+            assert result[
+                "total_income_msek"
+            ] == pytest.approx(50900.0 + 38500.0)
+            assert "balance_note" in result
+            assert result["balance_msek"] == pytest.approx(
+                (50900.0 + 38500.0)
+                - (158.244 + 84500.0),
+            )
+        finally:
+            srv._sk = orig_sk
+
+    async def test_areas_have_rank_by_outcome(
+        self, tmp_path,
+    ):
+        import statsbudget_mcp.server as srv
+
+        client = await _make_client(tmp_path)
+        await client.sync()
+
+        orig_sk = srv._sk
+        srv._sk = client
+
+        try:
+            result = await srv.get_budget_overview(2024)
+            by_id = {
+                a["area_id"]: a for a in result["areas"]
+            }
+            # 06 (84500.0) outranks 01 (158.244)
+            assert by_id["06"]["rank"] == 1
+            assert by_id["01"]["rank"] == 2
+        finally:
+            srv._sk = orig_sk
+
+
+# -------------------------------------------------------
+# Test: get_biggest_changes handler, full production path
+# -------------------------------------------------------
+
+
+@pytest.mark.asyncio
+class TestMCPHandlerGetBiggestChanges:
+    """get_biggest_changes() handler: sync -> client -> response."""
+
+    async def test_area_level_increase_and_decrease(
+        self, tmp_path,
+    ):
+        import statsbudget_mcp.server as srv
+
+        client = await _make_client(
+            tmp_path, exp_csv=_EXP_CSV_TWO_YEARS,
+        )
+        await client.sync()
+
+        orig_sk = srv._sk
+        srv._sk = client
+
+        try:
+            result = await srv.get_biggest_changes(
+                2023, 2024,
+            )
+
+            assert result["data_type"] == "area_change"
+            assert result["area_id"] is None
+            assert result["as_of"] is not None
+
+            inc_ids = {
+                c["area_id"]
+                for c in result["increases"]
+            }
+            dec_ids = {
+                c["area_id"]
+                for c in result["decreases"]
+            }
+            # 01 grows 100 -> 150 (+50), 06 shrinks
+            # 85000 -> 80000 (-5000)
+            assert inc_ids == {"01"}
+            assert dec_ids == {"06"}
+
+            increase = result["increases"][0]
+            assert increase["delta_msek"] == pytest.approx(
+                50.0,
+            )
+            decrease = result["decreases"][0]
+            assert decrease["delta_msek"] == pytest.approx(
+                -5000.0,
+            )
+        finally:
+            srv._sk = orig_sk
+
+    async def test_appropriation_level_drill_down(
+        self, tmp_path,
+    ):
+        import statsbudget_mcp.server as srv
+
+        client = await _make_client(
+            tmp_path, exp_csv=_EXP_CSV_TWO_YEARS,
+        )
+        await client.sync()
+
+        orig_sk = srv._sk
+        srv._sk = client
+
+        try:
+            result = await srv.get_biggest_changes(
+                2023, 2024, area_id="06",
+            )
+
+            assert (
+                result["data_type"]
+                == "appropriation_change"
+            )
+            assert result["area_id"] == "06"
+
+            decrease = result["decreases"][0]
+            assert (
+                decrease["appropriation_id"]
+                == "0601001"
+            )
+            assert decrease["delta_msek"] == pytest.approx(
+                -5000.0,
+            )
+        finally:
+            srv._sk = orig_sk
+
+    async def test_top_n_respected(self, tmp_path):
+        import statsbudget_mcp.server as srv
+
+        client = await _make_client(
+            tmp_path, exp_csv=_EXP_CSV_TWO_YEARS,
+        )
+        await client.sync()
+
+        orig_sk = srv._sk
+        srv._sk = client
+
+        try:
+            result = await srv.get_biggest_changes(
+                2023, 2024, top_n=1,
+            )
+            assert result["top_n"] == 1
+            assert len(result["increases"]) <= 1
+            assert len(result["decreases"]) <= 1
+        finally:
+            srv._sk = orig_sk
