@@ -752,6 +752,159 @@ class TestBudgetComparison:
         )
 
 
+class TestBiggestChanges:
+    def _client_with_areas(self):
+        client = StatskontoretClient()
+        client._expenditure_data = [
+            # "01" grows by 200 (biggest increase)
+            ExpenditureRow(
+                "01", "Rikets styrelse", "0101001",
+                "X", 2023, 1000.0, None, 1000.0,
+                None, None,
+            ),
+            ExpenditureRow(
+                "01", "Rikets styrelse", "0101001",
+                "X", 2024, 1200.0, None, 1200.0,
+                None, None,
+            ),
+            # "02" grows by 50 (smaller increase)
+            ExpenditureRow(
+                "02", "Ekonomi", "0201001",
+                "Y", 2023, 500.0, None, 500.0,
+                None, None,
+            ),
+            ExpenditureRow(
+                "02", "Ekonomi", "0201001",
+                "Y", 2024, 550.0, None, 550.0,
+                None, None,
+            ),
+            # "03" shrinks by 300 (biggest decrease)
+            ExpenditureRow(
+                "03", "Skatt", "0301001",
+                "Z", 2023, 900.0, None, 900.0,
+                None, None,
+            ),
+            ExpenditureRow(
+                "03", "Skatt", "0301001",
+                "Z", 2024, 600.0, None, 600.0,
+                None, None,
+            ),
+            # "04" is new in 2024: baseline 0, so delta_pct must be
+            # null rather than a misleading percentage.
+            ExpenditureRow(
+                "04", "Rattsvasendet", "0401001",
+                "W", 2024, 80.0, None, 80.0,
+                None, None,
+            ),
+        ]
+        return client
+
+    def test_increases_and_decreases_ranked(self):
+        client = self._client_with_areas()
+        result = client.get_biggest_changes(2023, 2024)
+
+        inc_ids = [c["area_id"] for c in result["increases"]]
+        assert inc_ids == ["01", "04", "02"]
+
+        dec_ids = [c["area_id"] for c in result["decreases"]]
+        assert dec_ids == ["03"]
+
+    def test_top_n_bounds_each_list(self):
+        client = self._client_with_areas()
+        result = client.get_biggest_changes(
+            2023, 2024, top_n=1,
+        )
+        assert len(result["increases"]) == 1
+        assert result["increases"][0]["area_id"] == "01"
+        assert len(result["decreases"]) == 1
+        assert result["decreases"][0]["area_id"] == "03"
+
+    def test_zero_baseline_gives_null_pct_not_misleading_value(
+        self,
+    ):
+        client = self._client_with_areas()
+        result = client.get_biggest_changes(2023, 2024)
+        new_area = next(
+            c
+            for c in result["increases"]
+            if c["area_id"] == "04"
+        )
+        assert new_area["delta_pct"] is None
+
+    def test_ties_broken_deterministically_by_id(self):
+        client = StatskontoretClient()
+        client._expenditure_data = [
+            ExpenditureRow(
+                "02", "B", "X", "X", 2023, 100.0, None,
+                100.0, None, None,
+            ),
+            ExpenditureRow(
+                "02", "B", "X", "X", 2024, 150.0, None,
+                150.0, None, None,
+            ),
+            ExpenditureRow(
+                "01", "A", "Y", "Y", 2023, 100.0, None,
+                100.0, None, None,
+            ),
+            ExpenditureRow(
+                "01", "A", "Y", "Y", 2024, 150.0, None,
+                150.0, None, None,
+            ),
+        ]
+        result = client.get_biggest_changes(2023, 2024)
+        assert [
+            c["area_id"] for c in result["increases"]
+        ] == ["01", "02"]
+
+    def test_appropriation_level_within_area(self):
+        client = StatskontoretClient()
+        client._expenditure_data = [
+            # continuing appropriation, grows
+            ExpenditureRow(
+                "06", "Forsvar", "0601001", "Forband",
+                2023, 1000.0, None, 1000.0, None, None,
+            ),
+            ExpenditureRow(
+                "06", "Forsvar", "0601001", "Forband",
+                2024, 1300.0, None, 1300.0, None, None,
+            ),
+            # removed in 2024 (baseline 200 -> 0)
+            ExpenditureRow(
+                "06", "Forsvar", "0601002", "Gammal post",
+                2023, 200.0, None, 200.0, None, None,
+            ),
+            # new in 2024 (baseline 0)
+            ExpenditureRow(
+                "06", "Forsvar", "0601003", "Ny post",
+                2024, 150.0, None, 150.0, None, None,
+            ),
+            # a different area's row must never leak in
+            ExpenditureRow(
+                "01", "Rikets styrelse", "0101001", "Other",
+                2024, 999.0, None, 999.0, None, None,
+            ),
+        ]
+        result = client.get_biggest_changes(
+            2023, 2024, area_id="06",
+        )
+        inc_ids = {
+            c["appropriation_id"] for c in result["increases"]
+        }
+        dec_ids = {
+            c["appropriation_id"] for c in result["decreases"]
+        }
+        assert inc_ids == {"0601001", "0601003"}
+        assert dec_ids == {"0601002"}
+
+        removed = next(
+            c
+            for c in result["decreases"]
+            if c["appropriation_id"] == "0601002"
+        )
+        assert removed[f"outcome_{2024}_msek"] == 0.0
+        assert removed["delta_msek"] == pytest.approx(-200.0)
+
+
 class TestAvailableYears:
     def test_returns_sorted_years(self):
         client = StatskontoretClient()

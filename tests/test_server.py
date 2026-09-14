@@ -11,6 +11,7 @@ from statsbudget_mcp.server import (
     _serialize_source,
     compare_budgets,
     get_available_years,
+    get_biggest_changes,
     get_budget_overview,
     get_cache_stats,
     get_expenditure_area,
@@ -105,12 +106,13 @@ class TestClientGuards:
 
 
 class TestToolRegistration:
-    """Verify all 14 tool functions are importable."""
+    """Verify all 15 tool functions are importable."""
 
     EXPECTED_TOOLS = [
         get_budget_overview,
         get_expenditure_area,
         compare_budgets,
+        get_biggest_changes,
         sync_budget_data,
         get_revenue,
         get_revenue_timeseries,
@@ -131,7 +133,7 @@ class TestToolRegistration:
             )
 
     def test_total_tool_count(self):
-        assert len(self.EXPECTED_TOOLS) == 14
+        assert len(self.EXPECTED_TOOLS) == 15
 
 
 @pytest.mark.asyncio
@@ -146,6 +148,7 @@ class TestToolRegistrationPublicAPI:
         "get_budget_overview",
         "get_expenditure_area",
         "compare_budgets",
+        "get_biggest_changes",
         "sync_budget_data",
         "get_revenue",
         "get_revenue_timeseries",
@@ -159,9 +162,9 @@ class TestToolRegistrationPublicAPI:
         "get_cache_stats",
     }
 
-    async def test_list_tools_returns_14(self):
+    async def test_list_tools_returns_15(self):
         tools = await mcp.list_tools()
-        assert len(tools) == 14
+        assert len(tools) == 15
 
     async def test_list_tools_contains_all_names(self):
         tools = await mcp.list_tools()
@@ -174,6 +177,7 @@ class TestToolRegistrationPublicAPI:
         assert "get_budget_overview" in names
         assert "get_expenditure_area" in names
         assert "compare_budgets" in names
+        assert "get_biggest_changes" in names
         assert "sync_budget_data" in names
 
     async def test_revenue_tools_registered(self):
@@ -243,6 +247,54 @@ class TestSourceSerialization:
             "income_revision",
         }
         assert set(result.keys()) == expected_keys
+
+
+class TestWithRank:
+    """_with_rank attaches 1-based rank without reordering."""
+
+    def test_ranks_by_value_descending(self):
+        from statsbudget_mcp.server import _with_rank
+
+        rows = [
+            {"id": "a", "outcome_msek": 10},
+            {"id": "b", "outcome_msek": 30},
+            {"id": "c", "outcome_msek": 20},
+        ]
+        ranked = _with_rank(rows, "outcome_msek")
+        by_id = {r["id"]: r["rank"] for r in ranked}
+        assert by_id == {"a": 3, "b": 1, "c": 2}
+
+    def test_preserves_original_order(self):
+        from statsbudget_mcp.server import _with_rank
+
+        rows = [
+            {"id": "a", "outcome_msek": 10},
+            {"id": "b", "outcome_msek": 30},
+        ]
+        ranked = _with_rank(rows, "outcome_msek")
+        assert [r["id"] for r in ranked] == ["a", "b"]
+
+    def test_none_value_treated_as_zero(self):
+        from statsbudget_mcp.server import _with_rank
+
+        rows = [
+            {"id": "a", "outcome_msek": None},
+            {"id": "b", "outcome_msek": 5},
+        ]
+        ranked = _with_rank(rows, "outcome_msek")
+        by_id = {r["id"]: r["rank"] for r in ranked}
+        assert by_id == {"a": 2, "b": 1}
+
+    def test_ties_broken_by_original_position(self):
+        from statsbudget_mcp.server import _with_rank
+
+        rows = [
+            {"id": "a", "outcome_msek": 10},
+            {"id": "b", "outcome_msek": 10},
+        ]
+        ranked = _with_rank(rows, "outcome_msek")
+        by_id = {r["id"]: r["rank"] for r in ranked}
+        assert by_id == {"a": 1, "b": 2}
 
 
 class TestSyncErrorHandling:

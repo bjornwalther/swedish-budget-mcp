@@ -11,7 +11,8 @@ File format:
 - Amounts: millions SEK with up to 8 decimals
 - First row: column headers
 
-Data covers 2006-2025 (expenditure) and includes both budget and outcome.
+Data covers 1997-2025 (expenditure) and 2006-2025 (income), and
+includes both budget and outcome.
 """
 
 from __future__ import annotations
@@ -131,6 +132,20 @@ BALANCE_MSEK_NOTE = (
     "includes net lending and a cash adjustment from the Swedish "
     "National Debt Office (Riksgalden). This server does not "
     "source that data, so no official balance figure is provided."
+)
+
+# Verified against 2024: our sum of 27 areas was 1,364,651 MSEK vs.
+# the commonly-reported "takbegransade utgifter" of 1,686,000 MSEK.
+# The gap reconciles almost exactly to area 26 (interest, excluded
+# from the ceiling figure) plus the old-age pension system (included
+# in the ceiling figure but not one of the 27 budget areas).
+TOTAL_EXPENDITURE_NOTE = (
+    "total_expenditure_msek is the sum of the 27 expenditure "
+    "areas' outturn only. It is NOT 'takbegransade utgifter' (the "
+    "expenditure-ceiling figure most often cited in Swedish budget "
+    "coverage), which excludes area 26 (state debt interest) but "
+    "adds the old-age pension system (alderspensionssystemet), "
+    "which sits outside statens budget and is not sourced here."
 )
 
 
@@ -1247,6 +1262,89 @@ class StatskontoretClient:
                 "delta_pct": p,
             })
         return result
+
+    def _compare_appropriations(
+        self, area_id, year_a, year_b,
+    ):
+        """Compare appropriations within one area across two years.
+
+        Same join-safety pattern as compare_budgets: union of IDs
+        from both years, missing side defaults to 0, delta_pct is
+        None (not 0%) when the baseline is 0. appropriation_id is
+        a stable key in practice (verified against real synced
+        data: >99.9% of IDs never change name or area across
+        1997-2025).
+        """
+        rows_a = {
+            r.appropriation_id: r
+            for r in self.get_expenditure_area(area_id, year_a)
+        }
+        rows_b = {
+            r.appropriation_id: r
+            for r in self.get_expenditure_area(area_id, year_b)
+        }
+        result = []
+        for aid in sorted(set(rows_a) | set(rows_b)):
+            a, b = rows_a.get(aid), rows_b.get(aid)
+            va = (
+                a.outcome_msek
+                if a and a.outcome_msek is not None
+                else 0.0
+            )
+            vb = (
+                b.outcome_msek
+                if b and b.outcome_msek is not None
+                else 0.0
+            )
+            d = vb - va
+            p = (
+                round(d / va * 100, 2)
+                if va != 0
+                else None
+            )
+            name = (
+                (b or a).appropriation_name
+                if (b or a)
+                else aid
+            )
+            result.append({
+                "appropriation_id": aid,
+                "appropriation_name": name,
+                f"outcome_{year_a}_msek": va,
+                f"outcome_{year_b}_msek": vb,
+                "delta_msek": d,
+                "delta_pct": p,
+            })
+        return result
+
+    def get_biggest_changes(
+        self, year_a, year_b, area_id=None, top_n=5,
+    ):
+        """Top increases and decreases in outturn between two years.
+
+        area_id=None compares the 27 expenditure areas (built on
+        compare_budgets). Passing area_id compares appropriations
+        within that area instead. Ties are broken deterministically
+        by ID so output order never depends on dict/hash ordering.
+        """
+        if area_id is None:
+            comparisons = self.compare_budgets(year_a, year_b)
+            id_key = "area_id"
+        else:
+            comparisons = self._compare_appropriations(
+                area_id, year_a, year_b,
+            )
+            id_key = "appropriation_id"
+
+        increases = sorted(
+            (c for c in comparisons if c["delta_msek"] > 0),
+            key=lambda c: (-c["delta_msek"], c[id_key]),
+        )[:top_n]
+        decreases = sorted(
+            (c for c in comparisons if c["delta_msek"] < 0),
+            key=lambda c: (c["delta_msek"], c[id_key]),
+        )[:top_n]
+        return {"increases": increases, "decreases": decreases}
 
     def get_available_years(self):
         years: set[int] = set()

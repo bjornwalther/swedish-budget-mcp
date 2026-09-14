@@ -17,6 +17,12 @@ Budget tools return **actual outturn** (utfall) from Statskontoret, not the orig
 
 To avoid silently misleading consumers, the response also includes `balance_note`, which explains the above in-band. No `official_balance_msek` field is exposed: net lending and cash adjustment data exist only in ESV's PDF reports or behind a scrape-only export on Riksgalden's site, not as a structured/API source, so we don't promise a field we have no reliable way to fill.
 
+## Total Expenditure Semantics
+
+`get_budget_overview` returns `total_expenditure_msek`, which is **the sum of the 27 expenditure areas' outturn only**. This is *not* "takbegransade utgifter" (the expenditure-ceiling figure most often cited in Swedish budget coverage), which excludes area 26 (state debt interest) but adds the old-age pension system (alderspensionssystemet), which sits outside statens budget entirely. A 2024 check found our sum was 1,364,651 MSEK against a commonly-reported ceiling figure of 1,686,000 MSEK - the gap reconciles almost exactly to area 26 plus the pension system.
+
+The response includes `total_expenditure_note` explaining this in-band, the same pattern as `balance_note`. Individual area totals can also be broader than a narrower media-defined category with a similar name - e.g. area 06 "Forsvar och samhallets krisberedskap" includes civil crisis preparedness alongside military defense, so it will not match a headline "forsvarsbudget" figure covering military defense only.
+
 ## Sync Guarantees
 
 - **Atomic snapshots**: both expenditure and income must parse successfully before any in-memory data or cache is updated. If either dataset fails, the server raises `SyncError` and falls back to the previous valid cache.
@@ -29,14 +35,16 @@ To avoid silently misleading consumers, the response also includes `balance_note
 | Source | What | Format | Coverage |
 |--------|------|--------|----------|
 | SCB PxWeb API | Tax revenue by type, tax quota/GDP | JSON (POST) | 1950-2025 |
-| Statskontoret Oppna Data | Budget outturn per expenditure area | CSV in ZIP | 2006-2025 |
+| Statskontoret Oppna Data | Budget outturn: expenditure | CSV in ZIP | 1997-2025 |
+| Statskontoret Oppna Data | Budget outturn: income | CSV in ZIP | 2006-2025 |
 
-## MCP Tools (14)
+## MCP Tools (15)
 
-**Budget Outturn (4)**
-- `get_budget_overview(year)` : actual expenditure outturn, total income, balance, all 27 areas (MSEK)
-- `get_expenditure_area(area_id, year)` : drill-down into appropriations with budget vs outturn
+**Budget Outturn (5)**
+- `get_budget_overview(year)` : actual expenditure outturn, total income, balance, all 27 areas (MSEK). Expenditure available from 1997; total_income_msek/balance_msek only meaningful from 2006 (income coverage starts then)
+- `get_expenditure_area(area_id, year)` : drill-down into appropriations with budget vs outturn (1997-2025)
 - `compare_budgets(year_a, year_b)` : year-over-year outturn delta per area
+- `get_biggest_changes(year_a, year_b, area_id?, top_n?)` : top increases/decreases between two years, area-level or (with area_id) appropriation-level within one area
 - `sync_budget_data(year?)` : download and cache latest outturn from Statskontoret
 
 **Tax Revenue (3)**

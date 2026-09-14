@@ -33,6 +33,7 @@ from .scb_client import SCBClient
 from .statskontoret import (
     BALANCE_MSEK_NOTE,
     NEXT_UPDATE_NOTE,
+    TOTAL_EXPENDITURE_NOTE,
     ExpenditureRow,
     IncomeRow,
     StatskontoretClient,
@@ -62,6 +63,24 @@ _CACHE_LOAD_ERRORS = (
 def _rows_to_dicts(rows: list) -> list[dict[str, Any]]:
     """Convert dataclass rows to dicts for cache storage."""
     return [asdict(r) for r in rows]
+
+
+def _with_rank(
+    rows: list[dict[str, Any]], value_key: str,
+) -> list[dict[str, Any]]:
+    """Attach 1-based `rank` (by value_key descending) without reordering.
+
+    Ties broken by original position for deterministic output.
+    """
+    order = sorted(
+        range(len(rows)),
+        key=lambda i: (-(rows[i].get(value_key) or 0), i),
+    )
+    ranks = {idx: rank for rank, idx in enumerate(order, start=1)}
+    return [
+        {**row, "rank": ranks[i]}
+        for i, row in enumerate(rows)
+    ]
 
 
 def _serialize_source(s: Any) -> dict[str, Any]:
@@ -292,22 +311,31 @@ async def get_budget_overview(
     and a cash adjustment from Riksgalden that this server does
     not source. See balance_note.
 
+    total_expenditure_msek is the sum of the 27 areas' outturn.
+    It is NOT "takbegransade utgifter" (the expenditure-ceiling
+    figure most often cited in Swedish budget coverage), which
+    excludes interest (area 26) but adds the old-age pension
+    system, which this server does not source. See
+    total_expenditure_note.
+
+    Each area's budget_msek is the decided budget (statens
+    budget, before amendments); outcome_msek is outturn. Neither
+    the originally proposed budget (regeringens proposition) nor
+    ESV forecasts are available from this data source. Areas can
+    also be broader than narrower media-defined categories (e.g.
+    "Forsvar och samhallets krisberedskap" includes civil crisis
+    preparedness alongside military defense) - always check
+    area_name before comparing to a headline figure.
+
     Args:
-        year: Budget year (2006-2025 available).
+        year: Budget year. Expenditure available 1997-2025;
+            total_income_msek/balance_msek only meaningful from
+            2006 (income data starts then).
     """
     sk = _require_sk()
     overview = sk.get_budget_overview(year)
-    return {
-        "year": overview.year,
-        "data_type": "outturn",
-        "source": "Statskontoret",
-        "total_expenditure_msek": (
-            overview.total_expenditure_msek
-        ),
-        "total_income_msek": overview.total_income_msek,
-        "balance_msek": overview.balance_msek,
-        "balance_note": BALANCE_MSEK_NOTE,
-        "areas": [
+    areas = _with_rank(
+        [
             {
                 "area_id": a.area_id,
                 "area_name": a.area_name,
@@ -317,6 +345,21 @@ async def get_budget_overview(
             }
             for a in overview.areas
         ],
+        "outcome_msek",
+    )
+    return {
+        "year": overview.year,
+        "data_type": "outturn",
+        "source": "Statskontoret",
+        "as_of": sk.get_sync_status().last_sync,
+        "total_expenditure_msek": (
+            overview.total_expenditure_msek
+        ),
+        "total_expenditure_note": TOTAL_EXPENDITURE_NOTE,
+        "total_income_msek": overview.total_income_msek,
+        "balance_msek": overview.balance_msek,
+        "balance_note": BALANCE_MSEK_NOTE,
+        "areas": areas,
     }
 
 
@@ -327,20 +370,27 @@ async def get_expenditure_area(
     """Drill down into a specific expenditure area.
 
     Returns all appropriations with budget vs outturn in MSEK.
-    Source: Statskontoret.
+    Source: Statskontoret. budget_msek is the decided budget,
+    amendment_budgets_msek is amendments, outcome_msek is outturn.
+    Neither the originally proposed budget nor ESV forecasts are
+    available from this data source.
+
+    The area total can be broader than a narrower media-defined
+    category with a similar name (e.g. area 06 "Forsvar och
+    samhallets krisberedskap" includes civil crisis preparedness
+    alongside military defense, so it will not match a headline
+    "forsvarsbudget" figure that covers military defense only) -
+    check area_name and the appropriation names before comparing
+    to an externally reported total.
 
     Args:
         area_id: Two-digit area ID (e.g. "06" for Defence).
-        year: Budget year.
+        year: Budget year (1997-2025).
     """
     sk = _require_sk()
     rows = sk.get_expenditure_area(area_id, year)
-    return {
-        "data_type": "outturn",
-        "source": "Statskontoret",
-        "area_id": area_id,
-        "year": year,
-        "appropriations": [
+    appropriations = _with_rank(
+        [
             {
                 "appropriation_id": r.appropriation_id,
                 "appropriation_name": (
@@ -360,6 +410,15 @@ async def get_expenditure_area(
             }
             for r in rows
         ],
+        "outcome_msek",
+    )
+    return {
+        "data_type": "outturn",
+        "source": "Statskontoret",
+        "as_of": sk.get_sync_status().last_sync,
+        "area_id": area_id,
+        "year": year,
+        "appropriations": appropriations,
     }
 
 
@@ -367,7 +426,11 @@ async def get_expenditure_area(
 async def compare_budgets(
     year_a: int, year_b: int,
 ) -> dict[str, Any]:
-    """Compare budget outturn between two years.
+    """Compare budget outturn between two years, per expenditure area.
+
+    Both years are outturn data (never mixed with budget/forecast
+    stages). delta_pct is null when the baseline year is zero or
+    the area didn't exist that year, to avoid a misleading percentage.
 
     Args:
         year_a: First year (baseline).
@@ -378,9 +441,53 @@ async def compare_budgets(
     return {
         "data_type": "outturn_comparison",
         "source": "Statskontoret",
+        "as_of": sk.get_sync_status().last_sync,
         "year_a": year_a,
         "year_b": year_b,
         "areas": comparisons,
+    }
+
+
+@mcp.tool()
+async def get_biggest_changes(
+    year_a: int,
+    year_b: int,
+    area_id: str | None = None,
+    top_n: int = 5,
+) -> dict[str, Any]:
+    """Get the biggest outturn increases and decreases between two years.
+
+    Built on the same comparison as compare_budgets - both years are
+    outturn data, never mixed with budget/forecast stages. delta_pct
+    is null when the baseline is zero or the area/appropriation
+    didn't exist that year. Ties broken deterministically by ID.
+
+    Args:
+        year_a: First year (baseline).
+        year_b: Second year (comparison).
+        area_id: If given, compare appropriations within this
+            expenditure area instead of comparing the 27 areas.
+        top_n: Number of increases and decreases to return each
+            (default 5).
+    """
+    sk = _require_sk()
+    result = sk.get_biggest_changes(
+        year_a, year_b, area_id=area_id, top_n=top_n,
+    )
+    return {
+        "data_type": (
+            "appropriation_change"
+            if area_id
+            else "area_change"
+        ),
+        "source": "Statskontoret",
+        "as_of": sk.get_sync_status().last_sync,
+        "year_a": year_a,
+        "year_b": year_b,
+        "area_id": area_id,
+        "top_n": top_n,
+        "increases": result["increases"],
+        "decreases": result["decreases"],
     }
 
 
