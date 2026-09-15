@@ -111,7 +111,7 @@ ruff check src/ tests/
 ```
 src/statsbudget_mcp/
 |-- __init__.py        # Package version
-|-- server.py          # FastMCP server, 14 tools, lifespan with auto-cache
+|-- server.py          # FastMCP server, 15 tools, lifespan with auto-cache
 |-- scb_client.py      # SCB PxWeb API client (async, retry with backoff)
 |-- statskontoret.py   # Statskontoret client (scrape, revision select, streaming download)
 |-- laffer.py          # Tax quota analysis with reform annotations
