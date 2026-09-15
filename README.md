@@ -125,7 +125,7 @@ src/swedish_budget_mcp/
 - [x] Statskontoret budget outturn client
 - [x] Tax quota analysis module with reform annotations
 - [x] SQLite cache with schema versioning and atomic snapshots
-- [x] FastMCP server with 14 tools
+- [x] FastMCP server with 15 tools
 - [x] ASCII formatters (bars, flow, decision, comparison, Laffer timeline)
 - [x] Retry logic with exponential backoff
 - [x] Download/ZIP size limits and host allowlist
