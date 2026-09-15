@@ -1,4 +1,4 @@
-"""Statskontoret open data client for statsbudget-mcp.
+"""Statskontoret open data client for swedish-budget-mcp.
 
 Downloads and parses annual budget outcome data (arsutfall) from
 Statskontoret's open data pages. Data is delivered as semicolon-separated
@@ -467,7 +467,7 @@ class StatskontoretClient:
             self._data_dir = Path(data_dir)
         else:
             self._data_dir = (
-                Path.home() / ".statsbudget-cache"
+                Path.home() / ".swedish-budget-cache"
             )
         self._data_dir.mkdir(parents=True, exist_ok=True)
         self._expenditure_data: list[ExpenditureRow] = []

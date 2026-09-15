@@ -1,4 +1,4 @@
-# statsbudget-mcp
+# swedish-budget-mcp
 
 > **Status: Alpha (v0.1.0)**
 > This project is under active development. APIs, schemas, and output formats may change without notice. Not recommended for production use yet. Contributions and feedback welcome.
@@ -70,13 +70,13 @@ The response includes `total_expenditure_note` explaining this in-band, the same
 
 ```bash
 # Development
-git clone https://github.com/bjornwalther/statsbudget-mcp.git
-cd statsbudget-mcp
+git clone https://github.com/bjornwalther/swedish-budget-mcp.git
+cd swedish-budget-mcp
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
 # Run the server
-statsbudget-mcp
+swedish-budget-mcp
 ```
 
 ### Claude Desktop
@@ -85,9 +85,9 @@ Add to `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "statsbudget-mcp": {
+    "swedish-budget-mcp": {
       "command": "python",
-      "args": ["-m", "statsbudget_mcp.server"]
+      "args": ["-m", "swedish_budget_mcp.server"]
     }
   }
 }
@@ -109,7 +109,7 @@ ruff check src/ tests/
 ## Architecture
 
 ```
-src/statsbudget_mcp/
+src/swedish_budget_mcp/
 |-- __init__.py        # Package version
 |-- server.py          # FastMCP server, 15 tools, lifespan with auto-cache
 |-- scb_client.py      # SCB PxWeb API client (async, retry with backoff)
@@ -132,7 +132,7 @@ src/statsbudget_mcp/
 - [x] Atomic staged sync with SyncError fallback
 - [x] Income revision selection (definitiv > preliminar)
 - [x] Streaming download with size enforcement
-- [ ] Publish to PyPI (`uvx statsbudget-mcp`)
+- [ ] Publish to PyPI (`uvx swedish-budget-mcp`)
 - [ ] Riksdagen voting client (propositions, votes per party)
 - [ ] Taxpayer breakdown by income source (5-level drill-down with legislative history)
 - [ ] Laffer #2: corporate tax (statutory rate vs revenue/GDP)

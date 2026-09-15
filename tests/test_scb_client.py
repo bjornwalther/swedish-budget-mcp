@@ -2,7 +2,7 @@
 
 import pytest
 
-from statsbudget_mcp.scb_client import (
+from swedish_budget_mcp.scb_client import (
     TAX_TYPE_LABELS,
     SCBClient,
     TaxQuotaRow,

@@ -1,4 +1,4 @@
-"""SQLite cache for statsbudget-mcp.
+"""SQLite cache for swedish-budget-mcp.
 
 Persists parsed budget data locally so the server starts instantly
 without re-downloading and re-parsing CSV files from Statskontoret
@@ -11,7 +11,7 @@ Schema:
 - scb_quota: tax quota snapshots
 - meta: sync metadata (last sync time, source dates, schema version)
 
-The cache is stored in ~/.statsbudget-cache/statsbudget.db by default.
+The cache is stored in ~/.swedish-budget-cache/swedish_budget.db by default.
 Schema version is checked on load; mismatches are treated as cache misses.
 A cache is only considered valid when both expenditure AND income are present.
 """
@@ -133,9 +133,9 @@ class BudgetCache:
 
     def __init__(self, db_path: str | Path | None = None) -> None:
         if db_path is None:
-            cache_dir = Path.home() / ".statsbudget-cache"
+            cache_dir = Path.home() / ".swedish-budget-cache"
             cache_dir.mkdir(parents=True, exist_ok=True)
-            db_path = cache_dir / "statsbudget.db"
+            db_path = cache_dir / "swedish_budget.db"
         self._db_path = Path(db_path)
         self._conn = sqlite3.connect(str(self._db_path))
         self._conn.row_factory = sqlite3.Row

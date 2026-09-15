@@ -1,10 +1,10 @@
-"""FastMCP server for statsbudget-mcp.
+"""FastMCP server for swedish-budget-mcp.
 
 Exposes Swedish national budget outturn data and tax revenue as MCP tools.
-Entry point for `uvx statsbudget-mcp` and Claude Desktop integration.
+Entry point for `uvx swedish-budget-mcp` and Claude Desktop integration.
 
 Startup behavior:
-1. Open SQLite cache (~/.statsbudget-cache/statsbudget.db)
+1. Open SQLite cache (~/.swedish-budget-cache/swedish_budget.db)
 2. If cache has data and is fresh (< 1 week): load from cache (ms)
 3. If cache is empty or stale: sync from Statskontoret, save to cache
 4. SCB data is fetched on-demand (with retry) and cached per session
@@ -215,7 +215,7 @@ async def _sync_and_cache(
 
 
 mcp = FastMCP(
-    "statsbudget-mcp",
+    "swedish-budget-mcp",
     instructions=(
         "Swedish national budget data: expenditure outturn "
         "by area, tax revenue from SCB, and tax quota "

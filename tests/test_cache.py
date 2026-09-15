@@ -4,7 +4,7 @@ import os
 import tempfile
 from datetime import UTC, datetime
 
-from statsbudget_mcp.cache import BudgetCache
+from swedish_budget_mcp.cache import BudgetCache
 
 _SAMPLE_EXPENDITURE = [
     {

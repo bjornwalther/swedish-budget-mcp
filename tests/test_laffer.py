@@ -2,7 +2,7 @@
 
 import pytest
 
-from statsbudget_mcp.laffer import (
+from swedish_budget_mcp.laffer import (
     TAX_REFORMS,
     LafferPoint,
     laffer_timeseries,
@@ -207,7 +207,7 @@ class TestIntegration:
     pytestmark = pytest.mark.integration
 
     async def test_build_laffer_curve(self):
-        from statsbudget_mcp.laffer import build_laffer_curve
+        from swedish_budget_mcp.laffer import build_laffer_curve
 
         async with SCBClient() as scb:
             points = await build_laffer_curve(scb, from_year=2000, to_year=2005)
@@ -218,4 +218,4 @@ class TestIntegration:
 
 
 # Need import for integration test
-from statsbudget_mcp.scb_client import SCBClient  # noqa: E402
+from swedish_budget_mcp.scb_client import SCBClient  # noqa: E402

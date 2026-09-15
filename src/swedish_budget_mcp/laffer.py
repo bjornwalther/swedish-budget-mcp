@@ -1,4 +1,4 @@
-"""Tax quota analysis module for statsbudget-mcp.
+"""Tax quota analysis module for swedish-budget-mcp.
 
 Provides data for visualizing Sweden's total tax pressure over time
 using SCB's SkattekvotBNP table. Annotates major tax reforms for context.

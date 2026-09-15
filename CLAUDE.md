@@ -14,7 +14,7 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
 # Run the server
-statsbudget-mcp                      # or: python -m statsbudget_mcp.server
+swedish-budget-mcp                      # or: python -m swedish_budget_mcp.server
 
 # Tests (unit only — no network calls)
 pytest tests/ -m "not integration"
@@ -38,7 +38,7 @@ Three independent data sources feed one FastMCP server (`server.py`), which hold
 - **`statskontoret.py`** — `StatskontoretClient` scrapes the Statskontoret open-data page for download links, classifies them (expenditure vs. income, ZIP vs. Excel), downloads ZIPs, and parses semicolon-delimited Swedish-locale CSVs (comma decimals) into `ExpenditureRow`/`IncomeRow` dataclasses. Column mapping is header-name-based (Swedish column names, e.g. `Utgiftsområde`, `Utfall`) with a fallback default, since Statskontoret's schema isn't guaranteed stable.
 - **`scb_client.py`** — `SCBClient` queries SCB's PxWeb v1 REST API (JSON POST) for tax revenue (`SkatteIntakt`) and tax quota (`SkattekvotBNP`) tables, with retry/backoff on transient errors (`_RETRYABLE_EXCEPTIONS`).
 - **`laffer.py`** — builds tax-quota-vs-GDP timeseries from `SCBClient` data, annotated with a static list of Swedish tax reforms (`TAX_REFORMS`, 1971–2020). Explicitly descriptive, not a causal Laffer curve (see module docstring).
-- **`cache.py`** — `BudgetCache` is a schema-versioned SQLite cache (`~/.statsbudget-cache/statsbudget.db`). A cache is only considered "populated" when both expenditure and income tables have rows AND `snapshot_complete` is true — partial snapshots are never trusted.
+- **`cache.py`** — `BudgetCache` is a schema-versioned SQLite cache (`~/.swedish-budget-cache/swedish_budget.db`). A cache is only considered "populated" when both expenditure and income tables have rows AND `snapshot_complete` is true — partial snapshots are never trusted.
 - **`formatters.py`** — ASCII visualizations (bars, flow diagrams, decision chains, Laffer timeline) for terminal/text MCP clients.
 - **`server.py`** — defines all MCP tools/resources and owns startup semantics (see below).
 

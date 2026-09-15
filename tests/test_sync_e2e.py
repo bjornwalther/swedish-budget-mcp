@@ -16,7 +16,7 @@ import zipfile
 import httpx
 import pytest
 
-from statsbudget_mcp.statskontoret import (
+from swedish_budget_mcp.statskontoret import (
     ExpenditureRow,
     IncomeRow,
     StatskontoretClient,
@@ -405,8 +405,8 @@ class TestMCPHandlerGetSyncStatus:
     """get_sync_status returns income_revision after sync."""
 
     async def test_has_revision(self, tmp_path):
-        import statsbudget_mcp.server as srv
-        from statsbudget_mcp.cache import BudgetCache
+        import swedish_budget_mcp.server as srv
+        from swedish_budget_mcp.cache import BudgetCache
 
         client = await _make_client(tmp_path)
         await client.sync()
@@ -435,8 +435,8 @@ class TestMCPHandlerGetSyncStatus:
     async def test_source_keys_complete(
         self, tmp_path,
     ):
-        import statsbudget_mcp.server as srv
-        from statsbudget_mcp.cache import BudgetCache
+        import swedish_budget_mcp.server as srv
+        from swedish_budget_mcp.cache import BudgetCache
 
         client = await _make_client(tmp_path)
         await client.sync()
@@ -480,8 +480,8 @@ class TestSyncBudgetDataHandler:
     async def test_stores_snapshot_and_returns_revision(
         self, tmp_path,
     ):
-        import statsbudget_mcp.server as srv
-        from statsbudget_mcp.cache import BudgetCache
+        import swedish_budget_mcp.server as srv
+        from swedish_budget_mcp.cache import BudgetCache
 
         # Build a mocked client that hasn't synced yet
         transport = _build_transport()
@@ -529,8 +529,8 @@ class TestSyncBudgetDataHandler:
     async def test_cache_contains_correct_data(
         self, tmp_path,
     ):
-        import statsbudget_mcp.server as srv
-        from statsbudget_mcp.cache import BudgetCache
+        import swedish_budget_mcp.server as srv
+        from swedish_budget_mcp.cache import BudgetCache
 
         transport = _build_transport()
         sk = StatskontoretClient(
@@ -588,7 +588,7 @@ class TestMCPHandlerGetBudgetOverview:
     async def test_response_shape_and_values(
         self, tmp_path,
     ):
-        import statsbudget_mcp.server as srv
+        import swedish_budget_mcp.server as srv
 
         client = await _make_client(tmp_path)
         await client.sync()
@@ -624,7 +624,7 @@ class TestMCPHandlerGetBudgetOverview:
     async def test_areas_have_rank_by_outcome(
         self, tmp_path,
     ):
-        import statsbudget_mcp.server as srv
+        import swedish_budget_mcp.server as srv
 
         client = await _make_client(tmp_path)
         await client.sync()
@@ -656,7 +656,7 @@ class TestMCPHandlerGetBiggestChanges:
     async def test_area_level_increase_and_decrease(
         self, tmp_path,
     ):
-        import statsbudget_mcp.server as srv
+        import swedish_budget_mcp.server as srv
 
         client = await _make_client(
             tmp_path, exp_csv=_EXP_CSV_TWO_YEARS,
@@ -702,7 +702,7 @@ class TestMCPHandlerGetBiggestChanges:
     async def test_appropriation_level_drill_down(
         self, tmp_path,
     ):
-        import statsbudget_mcp.server as srv
+        import swedish_budget_mcp.server as srv
 
         client = await _make_client(
             tmp_path, exp_csv=_EXP_CSV_TWO_YEARS,
@@ -735,7 +735,7 @@ class TestMCPHandlerGetBiggestChanges:
             srv._sk = orig_sk
 
     async def test_top_n_respected(self, tmp_path):
-        import statsbudget_mcp.server as srv
+        import swedish_budget_mcp.server as srv
 
         client = await _make_client(
             tmp_path, exp_csv=_EXP_CSV_TWO_YEARS,

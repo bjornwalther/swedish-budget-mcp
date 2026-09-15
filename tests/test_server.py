@@ -3,7 +3,7 @@
 import pytest
 
 # Tool functions are module-level, imported to verify they exist
-from statsbudget_mcp.server import (
+from swedish_budget_mcp.server import (
     EXPENDITURE_AREAS,
     _require_cache,
     _require_scb,
@@ -30,7 +30,7 @@ from statsbudget_mcp.server import (
 
 class TestServerSetup:
     def test_mcp_name(self):
-        assert mcp.name == "statsbudget-mcp"
+        assert mcp.name == "swedish-budget-mcp"
 
     def test_mcp_has_instructions(self):
         instructions = (
@@ -58,7 +58,7 @@ class TestClientGuards:
     def test_require_scb_raises_when_not_initialized(
         self,
     ):
-        import statsbudget_mcp.server as mod
+        import swedish_budget_mcp.server as mod
 
         original = mod._scb
         mod._scb = None
@@ -74,7 +74,7 @@ class TestClientGuards:
     def test_require_sk_raises_when_not_initialized(
         self,
     ):
-        import statsbudget_mcp.server as mod
+        import swedish_budget_mcp.server as mod
 
         original = mod._sk
         mod._sk = None
@@ -91,7 +91,7 @@ class TestClientGuards:
     def test_require_cache_raises_when_not_initialized(
         self,
     ):
-        import statsbudget_mcp.server as mod
+        import swedish_budget_mcp.server as mod
 
         original = mod._cache
         mod._cache = None
@@ -199,7 +199,7 @@ class TestSourceSerialization:
     """_serialize_source includes all fields."""
 
     def test_includes_income_revision(self):
-        from statsbudget_mcp.statskontoret import (
+        from swedish_budget_mcp.statskontoret import (
             DataSourceMeta,
         )
 
@@ -213,7 +213,7 @@ class TestSourceSerialization:
         assert result["income_revision"] == "preliminar_2"
 
     def test_income_revision_none_when_unset(self):
-        from statsbudget_mcp.statskontoret import (
+        from swedish_budget_mcp.statskontoret import (
             DataSourceMeta,
         )
 
@@ -226,7 +226,7 @@ class TestSourceSerialization:
         assert result["income_revision"] is None
 
     def test_all_expected_keys_present(self):
-        from statsbudget_mcp.statskontoret import (
+        from swedish_budget_mcp.statskontoret import (
             DataSourceMeta,
         )
 
@@ -253,7 +253,7 @@ class TestWithRank:
     """_with_rank attaches 1-based rank without reordering."""
 
     def test_ranks_by_value_descending(self):
-        from statsbudget_mcp.server import _with_rank
+        from swedish_budget_mcp.server import _with_rank
 
         rows = [
             {"id": "a", "outcome_msek": 10},
@@ -265,7 +265,7 @@ class TestWithRank:
         assert by_id == {"a": 3, "b": 1, "c": 2}
 
     def test_preserves_original_order(self):
-        from statsbudget_mcp.server import _with_rank
+        from swedish_budget_mcp.server import _with_rank
 
         rows = [
             {"id": "a", "outcome_msek": 10},
@@ -275,7 +275,7 @@ class TestWithRank:
         assert [r["id"] for r in ranked] == ["a", "b"]
 
     def test_none_value_treated_as_zero(self):
-        from statsbudget_mcp.server import _with_rank
+        from swedish_budget_mcp.server import _with_rank
 
         rows = [
             {"id": "a", "outcome_msek": None},
@@ -286,7 +286,7 @@ class TestWithRank:
         assert by_id == {"a": 2, "b": 1}
 
     def test_ties_broken_by_original_position(self):
-        from statsbudget_mcp.server import _with_rank
+        from swedish_budget_mcp.server import _with_rank
 
         rows = [
             {"id": "a", "outcome_msek": 10},
@@ -301,21 +301,21 @@ class TestSyncErrorHandling:
     """Server imports and catches SyncError."""
 
     def test_sync_error_in_sync_errors_tuple(self):
-        from statsbudget_mcp.server import _SYNC_ERRORS
-        from statsbudget_mcp.statskontoret import (
+        from swedish_budget_mcp.server import _SYNC_ERRORS
+        from swedish_budget_mcp.statskontoret import (
             SyncError,
         )
 
         assert SyncError in _SYNC_ERRORS
 
     def test_value_error_in_sync_errors_tuple(self):
-        from statsbudget_mcp.server import _SYNC_ERRORS
+        from swedish_budget_mcp.server import _SYNC_ERRORS
 
         assert ValueError in _SYNC_ERRORS
 
 
 class TestEntryPoint:
     def test_main_function_exists(self):
-        from statsbudget_mcp.server import main
+        from swedish_budget_mcp.server import main
 
         assert callable(main)

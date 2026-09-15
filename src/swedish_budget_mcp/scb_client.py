@@ -1,4 +1,4 @@
-"""SCB PxWeb API client for statsbudget-mcp.
+"""SCB PxWeb API client for swedish-budget-mcp.
 
 Provides async access to SCB's statistical database (statistikdatabasen)
 for tax revenue and tax quota data. Uses the PxWeb v1 REST API with

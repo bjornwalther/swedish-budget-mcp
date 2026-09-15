@@ -1,4 +1,4 @@
-"""ASCII visualization formatters for statsbudget-mcp.
+"""ASCII visualization formatters for swedish-budget-mcp.
 
 Three output formats optimized for token efficiency and readability
 in chat interfaces, terminals, and screen readers:

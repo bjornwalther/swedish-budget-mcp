@@ -6,7 +6,7 @@ import zipfile
 
 import pytest
 
-from statsbudget_mcp.statskontoret import (
+from swedish_budget_mcp.statskontoret import (
     MAX_CSV_BYTES,
     MAX_DOWNLOAD_BYTES,
     BudgetOverview,
@@ -277,7 +277,7 @@ class TestZipSizeGuard:
             os.unlink(path)
 
     def test_oversized_csv_rejected(self):
-        import statsbudget_mcp.statskontoret as sk
+        import swedish_budget_mcp.statskontoret as sk
 
         original = sk.MAX_CSV_BYTES
         try:
