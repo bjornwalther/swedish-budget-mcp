@@ -18,6 +18,11 @@ dependencies = [
     "httpx>=0.27.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/bjornwalther/swedish-budget-mcp"
+Repository = "https://github.com/bjornwalther/swedish-budget-mcp"
+Issues = "https://github.com/bjornwalther/swedish-budget-mcp/issues"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
