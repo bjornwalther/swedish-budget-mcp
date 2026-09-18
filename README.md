@@ -69,6 +69,15 @@ The response includes `total_expenditure_note` explaining this in-band, the same
 ## Installation
 
 ```bash
+# From PyPI
+pip install swedish-budget-mcp
+swedish-budget-mcp
+
+# Or, without installing:
+uvx swedish-budget-mcp
+```
+
+```bash
 # Development
 git clone https://github.com/bjornwalther/swedish-budget-mcp.git
 cd swedish-budget-mcp
@@ -86,8 +95,8 @@ Add to `claude_desktop_config.json`:
 {
   "mcpServers": {
     "swedish-budget-mcp": {
-      "command": "python",
-      "args": ["-m", "swedish_budget_mcp.server"]
+      "command": "uvx",
+      "args": ["swedish-budget-mcp"]
     }
   }
 }
@@ -132,7 +141,7 @@ src/swedish_budget_mcp/
 - [x] Atomic staged sync with SyncError fallback
 - [x] Income revision selection (definitiv > preliminar)
 - [x] Streaming download with size enforcement
-- [ ] Publish to PyPI (`uvx swedish-budget-mcp`)
+- [x] Publish to PyPI (`uvx swedish-budget-mcp`)
 - [ ] Riksdagen voting client (propositions, votes per party)
 - [ ] Taxpayer breakdown by income source (5-level drill-down with legislative history)
 - [ ] Laffer #2: corporate tax (statutory rate vs revenue/GDP)
